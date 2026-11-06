@@ -68,6 +68,7 @@ jobs:
             --resource-group $RESOURCE_GROUP \
             --template-file $BICEP_FILE
 
+
       - name: Deploy Infrastructure
         run: |
           az deployment group create \
