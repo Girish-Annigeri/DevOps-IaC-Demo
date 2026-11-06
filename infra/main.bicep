@@ -11,4 +11,3 @@ resource webApp 'Microsoft.Web/sites@2026-01-01' = {
   location: resourceGroup().location
 }
 
-targetScope = 'resourceGroup'
