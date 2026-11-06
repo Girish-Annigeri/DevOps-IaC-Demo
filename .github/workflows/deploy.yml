@@ -1,88 +1,81 @@
 name: Build and Deploy
 
-on: 
- push:
-  branch:
-   -main
-			
-permissions:
- id-token: write
- contents: read
-	
-env:
- DOTNET_VERSION: '8.0.x'
- RESOURCE_GROUP: rg-devops-demo01
- WEBAPP_NAME: asp-devops-demo
- BICEP_FILE: infra/main.bicep
-	
-jobs:
+on:
+  push:
+    branches:
+      - main
 
- build:
-	
-  runs-on: ubuntu-latest
-  
-  steps:
-   - name: Checkout Code
-     users: actions/checkout@v4
-  
-   - name: Setup .NET
-     users: actions/setup-dotnet@v4
-     with: dotnet-version: ${{ env.DOTNET_VERSION }}
-     
-   - name: Restore Packages
-     run: dotnet restore
-     
-   - name: Build Application
-     run: echo "No test project available"
-     
-   - name: Publish Application
-     run: dotnet publish -c Release -o ./publish
-     
-   - name: Upload Artifact
-     users: actions/upload-artifact@v4
-     with:
-      name: webapp
-      path: ./publish
-			
-			
- deploy:
- 
-  needs: build
-  
-  runs-on: ubuntu-latest
-  
-  steps: 
-  
-  - name: Checkout
-    users: actions/checkout@v4
-    
-  - name: Download Artifact
-    users: actions/download-artifact@v4
-    with:
-      name: webapp
-      path: ./publish
-      
-  - name: Azure Login
-    users: azure/login@v2
-    with:
-      client-id: ${{ secrets.Azure_CLIENT_ID }}
-      tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-      subscription-id: ${{ secrets.AZURE_SUBSCRIPTIONS_ID }}
-			
-  - name: Bicep What-If
-    run: | 
-      az deployment group what-if \
-      --resource-group $RESOURCE_GROUP \
-      --template-file $BICEP_FILE
-      
-  - name: Deploy Infrastructure
-    run: |
-      az deployment group create \
-      --resource-group $RESOURCE_GROUP \
-      --template-file $BICEP_FILE
-      
-  - name: Deploy Web Application
-    users: azure/webapps-deploy@v3
-    with: 
-      app-name: ${{ env.WEBAPP_NAME }}
-      package: ./publish
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  RESOURCE_GROUP: rg-devops-demo01
+  WEBAPP_NAME: asp-devops-demo
+  BICEP_FILE: infra/main.bicep
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore Packages
+        run: dotnet restore
+
+      - name: Build Application
+        run: echo "No test project available"
+
+      - name: Publish Application
+        run: dotnet publish -c Release -o ./publish
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Bicep What-If
+        run: |
+          az deployment group what-if \
+            --resource-group $RESOURCE_GROUP \
+            --template-file $BICEP_FILE
+
+      - name: Deploy Infrastructure
+        run: |
+          az deployment group create \
+            --resource-group $RESOURCE_GROUP \
+            --template-file $BICEP_FILE
+
+      - name: Deploy Web Application
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.WEBAPP_NAME }}
+          package: ./publish
